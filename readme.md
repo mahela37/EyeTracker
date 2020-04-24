@@ -17,4 +17,4 @@
 
 # Recommended Python IDE: PyCharm
 - https://www.jetbrains.com/pycharm/
-- Makes the GIT workflow much easier
+- Makes the GIT workflow much easier    
