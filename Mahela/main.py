@@ -15,6 +15,12 @@ def getFace(img,gray_picture):
 def drawRect(image,coords,color,thickness):
     cv2.rectangle(image, (coords[0], coords[1]), (coords[0] + coords[2], coords[1] + coords[3]),(color[0], color[1], color[2]), thickness)
 
+def a_inside_b(x,y):
+    return (x[0] > y[0] and x[1] > y[1] and x[0] + x[2] < y[0] + y[2] and x[1] + x[3] < y[1] + y[3])
+
+def a_intersect_b_yAxis(x,y):
+    return (x[1]<(y[1]+y[3]))
+
 
 def processFace(face,eyes): #do post-processing to remove eye and face rectangles that don't make sense
 
@@ -26,19 +32,31 @@ def processFace(face,eyes): #do post-processing to remove eye and face rectangle
 
     eyelist=[]
 
-    #basically checking if the eye rectangle is within the face frame boundaries. get rid of the other eyes.
+    face_top_half=[biggest_face[0],biggest_face[1],biggest_face[2],biggest_face[3]/2,]
+    #1. checking if the eye rectangle is within the face frame boundaries. get rid of the other eyes.
+    #2. checking if the eye is within the upper half of the face
     for eye in eyes:
-        if(eye[0]>biggest_face[0] and eye[1]>biggest_face[1] and eye[0]+eye[2]<biggest_face[0]+biggest_face[2] and eye[1]+eye[3]<biggest_face[1]+biggest_face[3]):
+        if(a_inside_b(eye,biggest_face) and a_intersect_b_yAxis(eye,face_top_half)):
             eyelist.append(eye)
 
+    #if theres a rectangle inside another rectangle, only keep the smaller one.
+    eyelist_2 = []
+    for eye in eyelist:
+        for eye_2 in eyelist:
+            if (a_inside_b(eye,eye_2)):
+                pass
+            else:
+                eyelist_2.append(eye_2)
 
-    return biggest_face,eyelist
+
+    return biggest_face,eyelist_2
 
 # fileURL="SampleImages/me.jpg"
 # img = cv2.imread(fileURL)
 
 #cap=cv2.VideoCapture("SampleImages/Trudeau.mp4")
-cap=cv2.VideoCapture("SampleImages/tech.mp4")
+cap=cv2.VideoCapture("SampleImages/news.mp4")
+#cap=cv2.VideoCapture("SampleImages/tech.mp4")
 
 #cap=cv2.VideoCapture(0)    for a webcam
 while True:
