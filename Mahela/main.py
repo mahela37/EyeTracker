@@ -1,12 +1,55 @@
 import cv2
 import numpy
 
+
+
+
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 mouth_cascade=cv2.CascadeClassifier('haarcascade_mcs_mouth.xml')
 mouth_cascade = cv2.CascadeClassifier('haarcascade_mcs_mouth.xml')
 
+def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=None):
+    #taken from: https://gist.github.com/clungzta/b4bbb3e2aa0490b0cfcbc042184b0b4e
+    """
+    @brief      Overlays a transparant PNG onto another image using CV2
 
+    @param      background_img    The background image
+    @param      img_to_overlay_t  The transparent image to overlay (has alpha channel)
+    @param      x                 x location to place the top-left corner of our overlay
+    @param      y                 y location to place the top-left corner of our overlay
+    @param      overlay_size      The size to scale our overlay to (tuple), no scaling if None
+
+    @return     Background image with overlay on top
+    """
+    img_to_overlay_t=cv2.imread(img_to_overlay_t,-1)
+
+
+    bg_img = background_img.copy()
+
+    if overlay_size is not None:
+        img_to_overlay_t = cv2.resize(img_to_overlay_t.copy(), overlay_size)
+
+    # Extract the alpha mask of the RGBA image, convert to RGB
+    b, g, r, a = cv2.split(img_to_overlay_t)
+    overlay_color = cv2.merge((b, g, r))
+
+    # Apply some simple filtering to remove edge noise
+    mask = cv2.medianBlur(a, 5)
+
+    h, w, _ = overlay_color.shape
+    roi = bg_img[y:y + h, x:x + w]
+
+    # Black-out the area behind the logo in our original ROI
+    img1_bg = cv2.bitwise_and(roi.copy(), roi.copy(), mask=cv2.bitwise_not(mask))
+
+    # Mask out the logo from the logo image.
+    img2_fg = cv2.bitwise_and(overlay_color, overlay_color, mask=mask)
+
+    # Update the original image with our new ROI
+    bg_img[y:y + h, x:x + w] = cv2.add(img1_bg, img2_fg)
+
+    return bg_img
 
 def getEyes(gray_picture):
     eyes = eye_cascade.detectMultiScale(gray_picture, 1.3, 5)
@@ -75,7 +118,7 @@ def processFace(face,eyes,mouth): #do post-processing to remove eye and face rec
 # img = cv2.imread(fileURL)
 
 #cap=cv2.VideoCapture("SampleImages/Trudeau.mp4")
-cap=cv2.VideoCapture("SampleImages/news.mp4")
+cap=cv2.VideoCapture("SampleImages/me.mp4")
 #cap=cv2.VideoCapture("SampleImages/tech.mp4")
 
 #cap=cv2.VideoCapture(0)    for a webcam
@@ -97,6 +140,9 @@ while True:
     for item in mouth:
         drawRectMouth(img,mouth,(0,0,255),2)
 
+    beardPath='SampleImages/beard.png'
+    #TODO: need to make the dimensions and position offset dynamic based on face rectangle
+    img=overlay_transparent(img,beardPath,face[0]-30, face[1]-20, (280, 300))
 
     cv2.imshow('my image', img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
