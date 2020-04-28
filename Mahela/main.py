@@ -1,12 +1,19 @@
 import cv2
-import numpy
-from imutils import face_utils
+import numpy as np
 
-eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
-face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
-mouth_cascade=cv2.CascadeClassifier('haarcascade_mcs_mouth.xml')
-mouth_cascade = cv2.CascadeClassifier('haarcascade_mcs_mouth.xml')
+eye_cascade = cv2.CascadeClassifier('HaarCascades/haarcascade_eye.xml')
+face_cascade = cv2.CascadeClassifier('HaarCascades/haarcascade_frontalface_default.xml')
+mouth_cascade=cv2.CascadeClassifier('HaarCascades/haarcascade_mcs_mouth.xml')
 
+#Used to convert dlib.rectangle type back to a Numpy array for easier addressing
+def shape_to_np(shape, dtype="int"):
+	coords = np.zeros((shape.num_parts, 2), dtype=dtype)
+	for i in range(0, shape.num_parts):
+		coords[i] = (shape.part(i).x, shape.part(i).y)
+
+	return coords
+
+#Overlays one image on top of the other.
 def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=None):
     #taken from: https://gist.github.com/clungzta/b4bbb3e2aa0490b0cfcbc042184b0b4e
     """
@@ -49,30 +56,36 @@ def overlay_transparent(background_img, img_to_overlay_t, x, y, overlay_size=Non
 
     return bg_img
 
+#Return the eyes as rectangles
 def getEyes(gray_picture):
     eyes = eye_cascade.detectMultiScale(gray_picture, 1.3, 5)
     return eyes
 
+#Return the mouths as rectangles
 def getMouth(gray_picture):
     mouth_rects = mouth_cascade.detectMultiScale(gray_picture, 1.7, 11)
     return mouth_rects
 
+#Return faces as rectangles
 def getFace(gray_picture):
     face=face_cascade.detectMultiScale(gray_picture,1.3,5)
     return face
 
+#Draws a rectangle over an image
 def drawRect(image,coords,color,thickness):
     cv2.rectangle(image, (coords[0], coords[1]), (coords[0] + coords[2], coords[1] + coords[3]),(color[0], color[1], color[2]), thickness)
 
+#Slighly different for the mouth
 def drawRectMouth(image,coords,color,thickness):
     cv2.rectangle(image, (coords[0][0], coords[0][1]), (coords[0][0] + coords[0][2], coords[0][1] + coords[0][3]),(color[0], color[1], color[2]), thickness)
 
+#Checks if rectangle A is completely inside rectangle B
+def a_inside_b(a,b):
+    return (a[0] > b[0] and a[1] > b[1] and a[0] + a[2] < b[0] + b[2] and a[1] + a[3] < b[1] + b[3])
 
-def a_inside_b(x,y):
-    return (x[0] > y[0] and x[1] > y[1] and x[0] + x[2] < y[0] + y[2] and x[1] + x[3] < y[1] + y[3])
-
-def a_intersect_b_yAxis(x,y):
-    return (x[1]<(y[1]+y[3]))
+#Checks if rectangle A's y top is above rectangle B's y bottom
+def a_intersect_b_yAxis(a,b):
+    return (a[1]<(b[1]+b[3]))
 
 
 def processFace(face,eyes,mouth): #do post-processing to remove eye and face rectangles that don't make sense
@@ -88,7 +101,7 @@ def processFace(face,eyes,mouth): #do post-processing to remove eye and face rec
     face_top_half=[biggest_face[0],biggest_face[1],biggest_face[2],biggest_face[3]/2,]
     face_bottom_half = [biggest_face[0], biggest_face[1]+biggest_face[3] / 1.5, biggest_face[2], biggest_face[3] / 2, ]
     #1. checking if the eye rectangle is within the face frame boundaries. get rid of the other eyes.
-    #2. checking if the eye is within the upper half of the face
+    #2. checking if the eye starts within the upper half of the face
     for eye in eyes:
         if(a_inside_b(eye,biggest_face) and a_intersect_b_yAxis(eye,face_top_half)):
             eyelist.append(eye)
@@ -103,7 +116,7 @@ def processFace(face,eyes,mouth): #do post-processing to remove eye and face rec
                 eyelist_2.append(eye_2)
 
 
-    #mouth filtering
+    #mouth filtering. make sure the mouth is in the bottom half of the face
     if(len(mouth)!=0):
         if(a_inside_b(mouth[0],face_bottom_half)):
             pass
@@ -112,28 +125,32 @@ def processFace(face,eyes,mouth): #do post-processing to remove eye and face rec
 
     return biggest_face,eyelist_2,mouth
 
+
+
+######################Different files I've used to test the code #############################
 # fileURL="SampleImages/me.jpg"
 # img = cv2.imread(fileURL)
-
-import dlib
-predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 #cap=cv2.VideoCapture("SampleImages/Trudeau.mp4")
 cap=cv2.VideoCapture("SampleImages/me.mp4")
 #cap=cv2.VideoCapture("SampleImages/tech.mp4")
 #cap=cv2.VideoCapture("SampleImages/news.mp4")
-
 #cap=cv2.VideoCapture(0)    for a webcam
+
+###############################################################################################
+
+import dlib #dlib is used to construct the 68 points of interest on the face
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
 while True:
 
     _,img=cap.read()
-    gray_picture = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # make picture gray
-    #img = cv2.imread("SampleImages/me.j0pg")
+
+    gray_picture = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # make picture gray. makes it faster for opencv and dlib
     eyes = getEyes(gray_picture)
     face=getFace(gray_picture)
     mouth=getMouth(gray_picture)
-
-    face,eyes,mouth=processFace(face=face,eyes=eyes,mouth=mouth)
+    face,eyes,mouth=processFace(face=face,eyes=eyes,mouth=mouth)    #do our filtering
 
     for item in eyes:
         drawRect(img, item, (0, 255, 0), 2)
@@ -143,29 +160,31 @@ while True:
     for item in mouth:
         drawRectMouth(img,mouth,(0,0,255),2)
 
+    ############Overlay code that I was using to draw stuff on top of face ##############
     #beardPath='SampleImages/beard.png'
     #TODO: need to make the dimensions and position offset dynamic based on face rectangle
     #img=overlay_transparent(img,beardPath,face[0]-30, face[1]-20, (280, 300))
 
     #sunglassesPath='SampleImages/sunglasses.png'
     #img = overlay_transparent(img, sunglassesPath, face[0] , face[1]-15, (200, 200))
+    ######################################################################################
 
-    #Labels
+    #Labels that categorize each rectangle
     # cv2.putText(img, "Face", (face[0], face[1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
     # cv2.putText(img, "Mouth", (mouth[0][0], mouth[0][1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
     # cv2.putText(img, "Eye", (eyes[0][0], eyes[0][1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
     # cv2.putText(img, "Eye", (eyes[1][0], eyes[1][1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
 
     #now let's extract 68 points of interest from the face. using dlib for this
-    rect=dlib.rectangle(face[0],face[1],face[0]+face[2],face[1]+face[3])
+    rect=dlib.rectangle(face[0],face[1],face[0]+face[2],face[1]+face[3])    #First, create a dlib.rectangle type with the face frame's starting and ending (x,y) coordinates
     shape = predictor(gray_picture, rect)
-    shape = face_utils.shape_to_np(shape)
-
+    shape = shape_to_np(shape)   #Converting the results back from dlib.rectangle type to a Numpy array for easier addressing
 
     for (x, y) in shape:
         cv2.circle(img, (x, y), 1, (0, 0, 255), -1)
 
     #outline the left eyebrow
+    #TODO: convert this to a function instead of manually forming lines between individual points
     cv2.line(img,(shape[17][0],shape[17][1]),(shape[18][0],shape[18][1]),(255,0,0),1)
     cv2.line(img, (shape[18][0], shape[18][1]), (shape[19][0], shape[19][1]), (255, 0, 0), 1)
     cv2.line(img, (shape[19][0], shape[19][1]), (shape[20][0], shape[20][1]), (255, 0, 0), 1)
@@ -174,9 +193,9 @@ while True:
 
 
     cv2.imshow('my image', img)
+
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
-
 
 cap.release()
 cv2.destroyAllWindows()
