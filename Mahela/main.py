@@ -161,8 +161,17 @@ while True:
     shape = predictor(gray_picture, rect)
     shape = face_utils.shape_to_np(shape)
 
+
     for (x, y) in shape:
         cv2.circle(img, (x, y), 1, (0, 0, 255), -1)
+
+    #outline the left eyebrow
+    cv2.line(img,(shape[17][0],shape[17][1]),(shape[18][0],shape[18][1]),(255,0,0),1)
+    cv2.line(img, (shape[18][0], shape[18][1]), (shape[19][0], shape[19][1]), (255, 0, 0), 1)
+    cv2.line(img, (shape[19][0], shape[19][1]), (shape[20][0], shape[20][1]), (255, 0, 0), 1)
+    cv2.line(img, (shape[20][0], shape[20][1]), (shape[21][0], shape[21][1]), (255, 0, 0), 1)
+    cv2.line(img, (shape[21][0], shape[21][1]), (shape[17][0], shape[17][1]), (255, 0, 0), 1)
+
 
     cv2.imshow('my image', img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
