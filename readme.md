@@ -19,7 +19,7 @@
 - https://www.jetbrains.com/pycharm/
 - Makes the GIT workflow much easier    
 
-#Mahela -- Used Libraries
+# Mahela -- Used Libraries
 - CV2
     - Make sure Windows Media Pack is installed if getting DLL import errors
 - dlib
