@@ -18,3 +18,14 @@
 # Recommended Python IDE: PyCharm
 - https://www.jetbrains.com/pycharm/
 - Makes the GIT workflow much easier    
+
+#Mahela -- Used Libraries
+- CV2
+    - Make sure Windows Media Pack is installed if getting DLL import errors
+- dlib
+    - This one was difficult. Ideally "pip install dlib" should do it. I got a lot of errors,and the following was what worked for me:
+    1. pip install cmake
+    2. Install cmake on windows
+    3. Install Visual Studio Community (Choose the C# and C++ options so that CMake is included)
+    4. pip install dlib
+     

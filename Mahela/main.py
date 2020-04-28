@@ -1,8 +1,6 @@
 import cv2
 import numpy
-
-
-
+from imutils import face_utils
 
 eye_cascade = cv2.CascadeClassifier('haarcascade_eye.xml')
 face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -117,15 +115,20 @@ def processFace(face,eyes,mouth): #do post-processing to remove eye and face rec
 # fileURL="SampleImages/me.jpg"
 # img = cv2.imread(fileURL)
 
+import dlib
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+
 #cap=cv2.VideoCapture("SampleImages/Trudeau.mp4")
 cap=cv2.VideoCapture("SampleImages/me.mp4")
 #cap=cv2.VideoCapture("SampleImages/tech.mp4")
+#cap=cv2.VideoCapture("SampleImages/news.mp4")
 
 #cap=cv2.VideoCapture(0)    for a webcam
 while True:
+
     _,img=cap.read()
     gray_picture = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)  # make picture gray
-    #img = cv2.imread("SampleImages/me.jpg")
+    #img = cv2.imread("SampleImages/me.j0pg")
     eyes = getEyes(gray_picture)
     face=getFace(gray_picture)
     mouth=getMouth(gray_picture)
@@ -140,13 +143,31 @@ while True:
     for item in mouth:
         drawRectMouth(img,mouth,(0,0,255),2)
 
-    beardPath='SampleImages/beard.png'
+    #beardPath='SampleImages/beard.png'
     #TODO: need to make the dimensions and position offset dynamic based on face rectangle
-    img=overlay_transparent(img,beardPath,face[0]-30, face[1]-20, (280, 300))
+    #img=overlay_transparent(img,beardPath,face[0]-30, face[1]-20, (280, 300))
+
+    #sunglassesPath='SampleImages/sunglasses.png'
+    #img = overlay_transparent(img, sunglassesPath, face[0] , face[1]-15, (200, 200))
+
+    #Labels
+    # cv2.putText(img, "Face", (face[0], face[1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
+    # cv2.putText(img, "Mouth", (mouth[0][0], mouth[0][1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
+    # cv2.putText(img, "Eye", (eyes[0][0], eyes[0][1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
+    # cv2.putText(img, "Eye", (eyes[1][0], eyes[1][1]), cv2.QT_FONT_NORMAL, 0.5, (0, 0, 255), 1)
+
+    #now let's extract 68 points of interest from the face. using dlib for this
+    rect=dlib.rectangle(face[0],face[1],face[0]+face[2],face[1]+face[3])
+    shape = predictor(gray_picture, rect)
+    shape = face_utils.shape_to_np(shape)
+
+    for (x, y) in shape:
+        cv2.circle(img, (x, y), 1, (0, 0, 255), -1)
 
     cv2.imshow('my image', img)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
+
 
 cap.release()
 cv2.destroyAllWindows()
