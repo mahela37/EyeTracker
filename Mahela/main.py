@@ -126,7 +126,6 @@ def processFace(face,eyes,mouth): #do post-processing to remove eye and face rec
     return biggest_face,eyelist_2,mouth
 
 
-
 ######################Different files I've used to test the code #############################
 # fileURL="SampleImages/me.jpg"
 # img = cv2.imread(fileURL)
@@ -139,8 +138,61 @@ cap=cv2.VideoCapture("SampleImages/me.mp4")
 
 ###############################################################################################
 
-import dlib #dlib is used to construct the 68 points of interest on the face
-predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+import dlib #dlib is used as the machine learning library
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")   #we train it using a dataset used to detect 68 facial features
+
+#Plot a range of dlib x,y coordinates on an image. ConnectEnds flag connects the first and last dot to create a closed polygon
+def dlibPlotRange(start, end, img, coords, connectEnds=0):
+    start_0=start
+    while(start<end):
+        cv2.line(img, (coords[start][0], coords[start][1]), (coords[start+1][0], coords[start+1][1]), (255, 0, 0), 1)
+        start=start+1
+    if(connectEnds):
+        cv2.line(img, (coords[start_0][0], coords[start_0][1]), (coords[end][0], coords[end][1]), (255, 0, 0),1)
+
+#Plots individual dlib x,y coordinates on an image
+def dlibPlotPoints(points,img,coords):
+    plen=len(points)
+    i=0
+    while(i<plen):
+        cv2.line(img, (coords[points[i]][0], coords[points[i]][1]), (coords[points[i+1]][0], coords[points[i+1]][1]), (255, 0, 0), 1)
+        if(i+2==len(points)):
+            break
+        i=i+1
+
+#Plots dlib features by feature name
+def dlibPlotFeatures(feature,img,coords):
+    if(feature=='chin'):
+        dlibPlotRange(0, 16, img, coords)
+
+    elif(feature=='left_eyebrow'):
+        dlibPlotRange(17, 21, img, coords,connectEnds=1)
+
+    elif (feature=='right_eyebrow'):
+        dlibPlotRange(22, 26, img, coords,connectEnds=1)
+
+    elif (feature == 'nose_line'):
+        dlibPlotRange(27, 30, img, coords)
+
+    elif (feature=='nostrils'):
+        dlibPlotRange(31, 35, img, coords)
+
+    elif (feature=='left_eye'):
+        dlibPlotRange(36, 41, img, coords,connectEnds=1)
+
+    elif (feature=='right_eye'):
+        dlibPlotRange(42, 47, img, coords,connectEnds=1)
+
+    elif (feature=='lips'):
+        dlibPlotRange(48, 67, img, coords)
+
+    elif (feature=='left_eyeball'):
+        dlibPlotPoints((37,38,40,41,37), img, coords)
+
+    elif (feature=='right_eyeball'):
+        dlibPlotPoints((43,44,46,47,43), img, coords)
+
+
 
 while True:
 
@@ -183,16 +235,19 @@ while True:
     for (x, y) in shape:
         cv2.circle(img, (x, y), 1, (0, 0, 255), -1)
 
-    #outline the left eyebrow
-    #TODO: convert this to a function instead of manually forming lines between individual points
-    cv2.line(img,(shape[17][0],shape[17][1]),(shape[18][0],shape[18][1]),(255,0,0),1)
-    cv2.line(img, (shape[18][0], shape[18][1]), (shape[19][0], shape[19][1]), (255, 0, 0), 1)
-    cv2.line(img, (shape[19][0], shape[19][1]), (shape[20][0], shape[20][1]), (255, 0, 0), 1)
-    cv2.line(img, (shape[20][0], shape[20][1]), (shape[21][0], shape[21][1]), (255, 0, 0), 1)
-    cv2.line(img, (shape[21][0], shape[21][1]), (shape[17][0], shape[17][1]), (255, 0, 0), 1)
 
+    dlibPlotFeatures('right_eyebrow',img,shape)
+    dlibPlotFeatures('left_eyebrow', img, shape)
+    dlibPlotFeatures('nose_line', img, shape)
+    dlibPlotFeatures('nostrils', img, shape)
+    dlibPlotFeatures('lips', img, shape)
+    dlibPlotFeatures('left_eye', img, shape)
+    dlibPlotFeatures('left_eyeball', img, shape)
+    dlibPlotFeatures('right_eye', img, shape)
+    dlibPlotFeatures('right_eyeball', img, shape)
+    dlibPlotFeatures('chin', img, shape)
 
-    cv2.imshow('my image', img)
+    cv2.imshow('test', img)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
